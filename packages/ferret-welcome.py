@@ -1,5 +1,552 @@
 #!/usr/bin/env python3
 """
+Ferret OS Modern Welcome Application
+A sleek, professional welcome experience for new users
+"""
+
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('WebKit2', '4.0')
+
+from gi.repository import Gtk, Gdk, GdkPixbuf, Gio, WebKit2
+import os
+import subprocess
+import json
+import threading
+import webbrowser
+
+class ModernWelcomeApp:
+    def __init__(self):
+        self.builder = Gtk.Builder()
+        self.setup_ui()
+        self.setup_css()
+        
+    def setup_ui(self):
+        """Create the modern UI layout"""
+        # Main window
+        self.window = Gtk.Window()
+        self.window.set_title("Welcome to Ferret OS")
+        self.window.set_default_size(1000, 700)
+        self.window.set_position(Gtk.WindowPosition.CENTER)
+        self.window.set_resizable(False)
+        
+        # Header bar
+        header_bar = Gtk.HeaderBar()
+        header_bar.set_show_close_button(True)
+        header_bar.set_title("Welcome to Ferret OS")
+        header_bar.set_subtitle("Get started with your new system")
+        self.window.set_titlebar(header_bar)
+        
+        # Main container
+        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        main_box.set_spacing(0)
+        
+        # Sidebar
+        sidebar = self.create_sidebar()
+        main_box.pack_start(sidebar, False, False, 0)
+        
+        # Content area
+        self.content_stack = Gtk.Stack()
+        self.content_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self.content_stack.set_transition_duration(300)
+        
+        # Add pages
+        self.add_welcome_page()
+        self.add_system_page()
+        self.add_software_page()
+        self.add_support_page()
+        
+        main_box.pack_start(self.content_stack, True, True, 0)
+        
+        self.window.add(main_box)
+        self.window.connect("destroy", Gtk.main_quit)
+        
+    def setup_css(self):
+        """Apply modern CSS styling"""
+        css_provider = Gtk.CssProvider()
+        css = """
+        .welcome-window {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .sidebar {
+            background: #1e293b;
+            color: #f8fafc;
+            min-width: 280px;
+        }
+        
+        .sidebar-item {
+            padding: 16px 24px;
+            border: none;
+            background: transparent;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .sidebar-item:hover {
+            background: #334155;
+            color: #f8fafc;
+        }
+        
+        .sidebar-item.active {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+        
+        .content-area {
+            background: #ffffff;
+            padding: 40px;
+        }
+        
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+        
+        .welcome-subtitle {
+            font-size: 18px;
+            color: #64748b;
+            margin-bottom: 32px;
+        }
+        
+        .feature-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        
+        .action-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .action-button:hover {
+            background: #2563eb;
+        }
+        
+        .secondary-button {
+            background: #e2e8f0;
+            color: #475569;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .secondary-button:hover {
+            background: #cbd5e1;
+        }
+        """
+        
+        css_provider.load_from_data(css.encode())
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+    
+    def create_sidebar(self):
+        """Create the modern sidebar navigation"""
+        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        sidebar.get_style_context().add_class("sidebar")
+        
+        # Logo and title
+        logo_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        logo_box.set_margin_top(32)
+        logo_box.set_margin_bottom(32)
+        
+        # Try to load Ferret OS logo
+        try:
+            logo_pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                "/usr/share/pixmaps/ferret-os-logo.svg", 64, 64, True
+            )
+            logo_image = Gtk.Image.new_from_pixbuf(logo_pixbuf)
+        except:
+            logo_image = Gtk.Image.new_from_icon_name("computer", Gtk.IconSize.DIALOG)
+        
+        logo_image.set_margin_bottom(16)
+        logo_box.pack_start(logo_image, False, False, 0)
+        
+        title_label = Gtk.Label("Ferret OS")
+        title_label.get_style_context().add_class("welcome-title")
+        title_label.set_markup('<span color="#f8fafc" size="20000" weight="bold">Ferret OS</span>')
+        logo_box.pack_start(title_label, False, False, 0)
+        
+        version_label = Gtk.Label("Version 1.0.0")
+        version_label.set_markup('<span color="#94a3b8" size="11000">Version 1.0.0</span>')
+        logo_box.pack_start(version_label, False, False, 0)
+        
+        sidebar.pack_start(logo_box, False, False, 0)
+        
+        # Navigation items
+        nav_items = [
+            ("Welcome", "welcome", "user-home"),
+            ("System", "system", "computer"),
+            ("Software", "software", "package-x-generic"),
+            ("Support", "support", "help-about")
+        ]
+        
+        for title, page, icon in nav_items:
+            button = Gtk.Button()
+            button.get_style_context().add_class("sidebar-item")
+            
+            button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            button_box.set_spacing(12)
+            
+            icon_image = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.BUTTON)
+            button_box.pack_start(icon_image, False, False, 0)
+            
+            label = Gtk.Label(title)
+            label.set_halign(Gtk.Align.START)
+            button_box.pack_start(label, True, True, 0)
+            
+            button.add(button_box)
+            button.connect("clicked", self.on_sidebar_clicked, page)
+            
+            sidebar.pack_start(button, False, False, 0)
+        
+        return sidebar
+    
+    def add_welcome_page(self):
+        """Create the welcome page"""
+        page = Gtk.ScrolledWindow()
+        page.get_style_context().add_class("content-area")
+        
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        content.set_margin_left(40)
+        content.set_margin_right(40)
+        content.set_margin_top(40)
+        content.set_margin_bottom(40)
+        
+        # Hero section
+        hero_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        hero_box.set_halign(Gtk.Align.CENTER)
+        hero_box.set_margin_bottom(48)
+        
+        title = Gtk.Label()
+        title.set_markup('<span size="40000" weight="bold" color="#1e293b">Welcome to Ferret OS</span>')
+        title.set_margin_bottom(16)
+        hero_box.pack_start(title, False, False, 0)
+        
+        subtitle = Gtk.Label()
+        subtitle.set_markup('<span size="16000" color="#64748b">Fast, secure, and modern computing experience</span>')
+        subtitle.set_margin_bottom(32)
+        hero_box.pack_start(subtitle, False, False, 0)
+        
+        # Action buttons
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        button_box.set_spacing(16)
+        button_box.set_halign(Gtk.Align.CENTER)
+        
+        install_button = Gtk.Button("Install Ferret OS")
+        install_button.get_style_context().add_class("action-button")
+        install_button.connect("clicked", self.on_install_clicked)
+        button_box.pack_start(install_button, False, False, 0)
+        
+        tour_button = Gtk.Button("Take a Tour")
+        tour_button.get_style_context().add_class("secondary-button")
+        tour_button.connect("clicked", self.on_tour_clicked)
+        button_box.pack_start(tour_button, False, False, 0)
+        
+        hero_box.pack_start(button_box, False, False, 0)
+        content.pack_start(hero_box, False, False, 0)
+        
+        # Features grid
+        features_grid = Gtk.Grid()
+        features_grid.set_column_spacing(24)
+        features_grid.set_row_spacing(24)
+        features_grid.set_column_homogeneous(True)
+        
+        features = [
+            ("🚀", "Fast Performance", "Optimized for speed with modern hardware support"),
+            ("🔒", "Secure by Default", "Built-in firewall and security features"),
+            ("🎨", "Beautiful Design", "Modern interface with professional aesthetics"),
+            ("📦", "Rich Software", "Access to thousands of applications"),
+            ("💻", "Developer Ready", "Pre-installed development tools"),
+            ("🌐", "Always Connected", "Excellent network and WiFi support")
+        ]
+        
+        for i, (icon, title, desc) in enumerate(features):
+            card = self.create_feature_card(icon, title, desc)
+            features_grid.attach(card, i % 3, i // 3, 1, 1)
+        
+        content.pack_start(features_grid, True, True, 0)
+        
+        page.add(content)
+        self.content_stack.add_named(page, "welcome")
+    
+    def create_feature_card(self, icon, title, description):
+        """Create a feature card"""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        card.get_style_context().add_class("feature-card")
+        card.set_spacing(12)
+        
+        icon_label = Gtk.Label()
+        icon_label.set_markup(f'<span size="32000">{icon}</span>')
+        card.pack_start(icon_label, False, False, 0)
+        
+        title_label = Gtk.Label()
+        title_label.set_markup(f'<span size="14000" weight="bold" color="#1e293b">{title}</span>')
+        card.pack_start(title_label, False, False, 0)
+        
+        desc_label = Gtk.Label(description)
+        desc_label.set_line_wrap(True)
+        desc_label.set_max_width_chars(30)
+        desc_label.get_style_context().add_class("text-muted")
+        card.pack_start(desc_label, False, False, 0)
+        
+        return card
+    
+    def add_system_page(self):
+        """Create the system information page"""
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        page.get_style_context().add_class("content-area")
+        
+        title = Gtk.Label()
+        title.set_markup('<span size="24000" weight="bold" color="#1e293b">System Information</span>')
+        title.set_halign(Gtk.Align.START)
+        title.set_margin_bottom(24)
+        page.pack_start(title, False, False, 0)
+        
+        # System info grid
+        info_grid = Gtk.Grid()
+        info_grid.set_column_spacing(24)
+        info_grid.set_row_spacing(16)
+        
+        system_info = self.get_system_info()
+        
+        for i, (label, value) in enumerate(system_info.items()):
+            label_widget = Gtk.Label(f"{label}:")
+            label_widget.set_halign(Gtk.Align.START)
+            label_widget.get_style_context().add_class("font-weight-bold")
+            
+            value_widget = Gtk.Label(value)
+            value_widget.set_halign(Gtk.Align.START)
+            value_widget.set_line_wrap(True)
+            
+            info_grid.attach(label_widget, 0, i, 1, 1)
+            info_grid.attach(value_widget, 1, i, 1, 1)
+        
+        page.pack_start(info_grid, False, False, 0)
+        
+        self.content_stack.add_named(page, "system")
+    
+    def add_software_page(self):
+        """Create the software installation page"""
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        page.get_style_context().add_class("content-area")
+        
+        title = Gtk.Label()
+        title.set_markup('<span size="24000" weight="bold" color="#1e293b">Essential Software</span>')
+        title.set_halign(Gtk.Align.START)
+        title.set_margin_bottom(24)
+        page.pack_start(title, False, False, 0)
+        
+        # Software categories
+        categories = [
+            ("Productivity", ["LibreOffice", "GIMP", "Thunderbird"]),
+            ("Development", ["Visual Studio Code", "Git", "Docker"]),
+            ("Media", ["VLC", "Audacity", "Blender"]),
+            ("Internet", ["Firefox", "Chrome", "Telegram"])
+        ]
+        
+        for category, apps in categories:
+            category_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            category_box.set_margin_bottom(32)
+            
+            category_label = Gtk.Label()
+            category_label.set_markup(f'<span size="16000" weight="bold" color="#475569">{category}</span>')
+            category_label.set_halign(Gtk.Align.START)
+            category_label.set_margin_bottom(12)
+            category_box.pack_start(category_label, False, False, 0)
+            
+            apps_grid = Gtk.FlowBox()
+            apps_grid.set_max_children_per_line(4)
+            apps_grid.set_selection_mode(Gtk.SelectionMode.NONE)
+            
+            for app in apps:
+                app_button = Gtk.Button(f"Install {app}")
+                app_button.get_style_context().add_class("secondary-button")
+                app_button.connect("clicked", self.on_install_app, app)
+                apps_grid.add(app_button)
+            
+            category_box.pack_start(apps_grid, False, False, 0)
+            page.pack_start(category_box, False, False, 0)
+        
+        self.content_stack.add_named(page, "software")
+    
+    def add_support_page(self):
+        """Create the support and resources page"""
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        page.get_style_context().add_class("content-area")
+        
+        title = Gtk.Label()
+        title.set_markup('<span size="24000" weight="bold" color="#1e293b">Support & Resources</span>')
+        title.set_halign(Gtk.Align.START)
+        title.set_margin_bottom(24)
+        page.pack_start(title, False, False, 0)
+        
+        # Support links
+        support_items = [
+            ("📚", "Documentation", "Complete user guide and tutorials", "https://ferret-os.org/docs"),
+            ("🐛", "Report Bug", "Help improve Ferret OS", "https://github.com/ferret-os/ferret/issues"),
+            ("💬", "Community", "Join our community forum", "https://community.ferret-os.org"),
+            ("📧", "Contact", "Get in touch with our team", "mailto:support@ferret-os.org")
+        ]
+        
+        for icon, title, desc, url in support_items:
+            item_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            item_box.set_spacing(16)
+            item_box.set_margin_bottom(16)
+            
+            icon_label = Gtk.Label()
+            icon_label.set_markup(f'<span size="24000">{icon}</span>')
+            item_box.pack_start(icon_label, False, False, 0)
+            
+            content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            content_box.set_spacing(4)
+            
+            title_label = Gtk.Label()
+            title_label.set_markup(f'<span size="14000" weight="bold" color="#1e293b">{title}</span>')
+            title_label.set_halign(Gtk.Align.START)
+            content_box.pack_start(title_label, False, False, 0)
+            
+            desc_label = Gtk.Label(desc)
+            desc_label.set_halign(Gtk.Align.START)
+            desc_label.get_style_context().add_class("text-muted")
+            content_box.pack_start(desc_label, False, False, 0)
+            
+            item_box.pack_start(content_box, True, True, 0)
+            
+            open_button = Gtk.Button("Open")
+            open_button.get_style_context().add_class("secondary-button")
+            open_button.connect("clicked", self.on_open_url, url)
+            item_box.pack_start(open_button, False, False, 0)
+            
+            page.pack_start(item_box, False, False, 0)
+        
+        self.content_stack.add_named(page, "support")
+    
+    def get_system_info(self):
+        """Get system information"""
+        info = {}
+        
+        try:
+            # OS information
+            with open('/etc/os-release', 'r') as f:
+                for line in f:
+                    if line.startswith('PRETTY_NAME='):
+                        info['Operating System'] = line.split('=')[1].strip().strip('"')
+                        break
+            
+            # Kernel version
+            with open('/proc/version', 'r') as f:
+                kernel_info = f.read().split()[2]
+                info['Kernel'] = kernel_info
+            
+            # Memory information
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    if line.startswith('MemTotal:'):
+                        mem_kb = int(line.split()[1])
+                        mem_gb = round(mem_kb / 1024 / 1024, 1)
+                        info['Memory'] = f"{mem_gb} GB"
+                        break
+            
+            # CPU information
+            with open('/proc/cpuinfo', 'r') as f:
+                for line in f:
+                    if line.startswith('model name'):
+                        info['Processor'] = line.split(':')[1].strip()
+                        break
+        
+        except Exception as e:
+            info['Error'] = f"Could not retrieve system information: {e}"
+        
+        return info
+    
+    def on_sidebar_clicked(self, button, page):
+        """Handle sidebar navigation"""
+        self.content_stack.set_visible_child_name(page)
+        
+        # Update button states
+        for child in button.get_parent().get_children():
+            if hasattr(child, 'get_style_context'):
+                child.get_style_context().remove_class("active")
+        
+        button.get_style_context().add_class("active")
+    
+    def on_install_clicked(self, button):
+        """Launch the system installer"""
+        try:
+            subprocess.Popen(['pkexec', 'calamares'])
+        except Exception as e:
+            dialog = Gtk.MessageDialog(
+                self.window, 0, Gtk.MessageType.ERROR,
+                Gtk.ButtonsType.OK,
+                f"Could not launch installer: {e}"
+            )
+            dialog.run()
+            dialog.destroy()
+    
+    def on_tour_clicked(self, button):
+        """Start system tour"""
+        # Switch to system page for now
+        self.content_stack.set_visible_child_name("system")
+    
+    def on_install_app(self, button, app_name):
+        """Install application"""
+        button.set_sensitive(False)
+        button.set_label(f"Installing {app_name}...")
+        
+        def install_thread():
+            try:
+                # This would typically install via flatpak or apt
+                subprocess.run(['flatpak', 'install', '-y', app_name.lower()], 
+                             capture_output=True, text=True)
+                button.set_label(f"{app_name} Installed")
+            except:
+                button.set_label(f"Install {app_name}")
+                button.set_sensitive(True)
+        
+        threading.Thread(target=install_thread, daemon=True).start()
+    
+    def on_open_url(self, button, url):
+        """Open URL in default browser"""
+        webbrowser.open(url)
+    
+    def run(self):
+        """Start the application"""
+        self.window.show_all()
+        # Set welcome page as active initially
+        self.content_stack.set_visible_child_name("welcome")
+        Gtk.main()
+
+def main():
+    app = ModernWelcomeApp()
+    app.run()
+
+if __name__ == "__main__":
+    main()
+"""
 Ferret OS Welcome Application
 A friendly welcome screen for new users with essential information and quick setup
 """

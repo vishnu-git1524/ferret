@@ -1,4 +1,4 @@
-# Ferret OS Branding Configuration
+# Ferret OS Modern Branding Configuration
 
 componentName:  ferret
 
@@ -10,27 +10,27 @@ strings:
     versionedName:       "Ferret OS 1.0.0"
     shortVersionedName:  "Ferret OS 1.0"
     bootloaderEntryName: "Ferret OS"
-    productUrl:          "https://ferret-os.org"
-    supportUrl:          "https://ferret-os.org/support"
-    knownIssuesUrl:      "https://ferret-os.org/issues"
-    releaseNotesUrl:     "https://ferret-os.org/release-notes"
-    donateUrl:           "https://ferret-os.org/donate"
+    productUrl:          "https://ferret-os.org/"
+    supportUrl:          "https://ferret-os.org/support/"
+    knownIssuesUrl:      "https://ferret-os.org/issues/"
+    releaseNotesUrl:     "https://ferret-os.org/releases/"
+    donateUrl:           "https://ferret-os.org/donate/"
 
 images:
-    productLogo:         "ferret-logo.png"
-    productIcon:         "ferret-icon.png"
-    productWallpaper:    "ferret-wallpaper.png"
+    productLogo:         "logo.svg"
+    productIcon:         "logo.svg"
+    productWelcome:      "welcome.svg"
+    productWallpaper:    "ferret-wallpaper.svg"
 
 style:
-   sidebarBackground:    "#2563EB"
-   sidebarText:          "#FFFFFF"
-   sidebarTextSelect:    "#1E40AF"
-   sidebarTextHighlight: "#60A5FA"
+   sidebarBackground:    "#1e293b"
+   sidebarText:          "#f8fafc"
+   sidebarTextSelect:    "#3b82f6"
+   sidebarTextCurrent:   "#ffffff"
+   sidebarBackgroundCurrent: "#334155"
 
-slideshows:
-    - qml
-
-slideshow: "show.qml"
+slideshow:               "show.qml"
+slideshowAPI: 2
 
 uploadServer :
     type :    "fiche"
