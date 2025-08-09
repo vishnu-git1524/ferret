@@ -207,6 +207,7 @@ install_packages() {
         "os-prober"
         "systemd"
         "systemd-sysv"
+        "systemd-timesyncd"
         "dbus"
         "initramfs-tools"
         
@@ -683,18 +684,17 @@ SCRIPT_EOF
     if [[ -f "packages/ferret-welcome.py" ]]; then
         cp "packages/ferret-welcome.py" "$ROOT_DIR/usr/bin/ferret-welcome"
         chmod +x "$ROOT_DIR/usr/bin/ferret-welcome"
-        
         # Create desktop entry for welcome app
         cat > "$ROOT_DIR/etc/xdg/autostart/ferret-welcome.desktop" << 'WELCOME_EOF'
-[Desktop Entry]
-Type=Application
-Name=Ferret OS Welcome
-Exec=ferret-welcome
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-OnlyShowIn=XFCE;
-EOF
+        [Desktop Entry]
+        Type=Application
+        Name=Ferret OS Welcome
+        Exec=ferret-welcome
+        Hidden=false
+        NoDisplay=false
+        X-GNOME-Autostart-enabled=true
+        OnlyShowIn=XFCE;
+        WELCOME_EOF
 
         # Install dependencies for welcome app
         chroot "$ROOT_DIR" /bin/bash -c "
@@ -922,8 +922,10 @@ defaultDesktopEnvironment:
     desktopFile: "xfce4-session"
 DM_EOF
 
-    # Create desktop entry for installer
-    cat > "$ROOT_DIR/home/ferret/Desktop/install-ferret-os.desktop" << 'DESKTOP_EOF'
+   mkdir -p "$ROOT_DIR/home/ferret/Desktop"
+
+# Create desktop entry for installer
+cat > "$ROOT_DIR/home/ferret/Desktop/install-ferret-os.desktop" << 'DESKTOP_EOF'
 [Desktop Entry]
 Type=Application
 Version=1.0
@@ -938,10 +940,11 @@ Categories=System;
 Keywords=installer;calamares;install;
 DESKTOP_EOF
 
-    chmod +x "$ROOT_DIR/home/ferret/Desktop/install-ferret-os.desktop"
-    chown ferret:ferret "$ROOT_DIR/home/ferret/Desktop/install-ferret-os.desktop"
-    
-    success "Installer configured"
+chmod +x "$ROOT_DIR/home/ferret/Desktop/install-ferret-os.desktop"
+chown ferret:ferret "$ROOT_DIR/home/ferret/Desktop/install-ferret-os.desktop"
+
+success "Installer configured"
+
 }
 
 # Setup Flatpak support
